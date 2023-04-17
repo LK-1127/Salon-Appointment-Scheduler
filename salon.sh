@@ -1,144 +1,58 @@
---
--- PostgreSQL database dump
---
+#!/bin/bash
 
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
-SET check_function_bodies = false;
-SET xmloption = content;
-SET client_min_messages = warning;
-SET row_security = off;
+PSQL="psql -X --username=freecodecamp --dbname=salon --tuples-only -c"
 
-DROP DATABASE salon;
+echo -e "\n~~~~~ MY SALON ~~~~~\n"
 
-CREATE DATABASE salon WITH TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'C.UTF-8' LC_CTYPE = 'C.UTF-8';
+MAIN_MENU() {
+    echo -e "Welcome to My Salon, how can I help you?\n"
 
+    echo -e "1) cut\n2) color\n3) perm\n4) style\n5) trim"
+    read SERVICE_ID_SELECTED
 
-ALTER DATABASE salon OWNER TO freecodecamp;
+    case $SERVICE_ID_SELECTED in
+    1) PRC cut;;
+    2) PRC color;;
+    3) PRC perm;;
+    4) PRC style;;
+    5) PRC trim;;
+    *) MAIN_MENU ;;
+    esac
+}
 
-\connect salon
+PRC() {
+    SERVICE=$1
+    SERVICE_ID=$($PSQL "SELECT service_id FROM services WHERE name='$SERVICE'")
 
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
-SET check_function_bodies = false;
-SET xmloption = content;
-SET client_min_messages = warning;
-SET row_security = off;
+    #get phone number
+    echo -e "\n What's your phone number?"
+    read CUSTOMER_PHONE
+    GET_CUSTOMER_NAME=$($PSQL "SELECT name FROM customers WHERE phone = '$CUSTOMER_PHONE'")
+    #check phone against records
+    #if no record ask for name
+    if [[ -z $GET_CUSTOMER_NAME ]]; then
+        echo -e "\nI don't have a record for that phone number, what's your name?"
+        read CUSTOMER_NAME
+        INSERT_NEW_CUSTOMER=$($PSQL "INSERT INTO customers (name , phone) VALUES ('$CUSTOMER_NAME' , '$CUSTOMER_PHONE')")
+        echo -e "\nWhat time would you like your $(echo $SERVICE | sed -E 's/^ *| *$//g'), $(echo $CUSTOMER_NAME | sed -E 's/^ *| *$//g')?"
+        read SERVICE_TIME
+        #get custmer id
+        CUSTOMER_ID=$($PSQL "SELECT customer_id FROM customers WHERE phone='$CUSTOMER_PHONE'")
+        #insert appointment (for cut)
+        INSERT_APPOINTMENT_CUT=$($PSQL "INSERT INTO appointments (customer_id, service_id, time) VALUES ($CUSTOMER_ID, $SERVICE_ID, '$SERVICE_TIME')")
+        #message to confirm apt type and time
+        echo -e "\nI have put you down for a $(echo $SERVICE | sed -E 's/^ *| *$//g') at $(echo $SERVICE_TIME | sed -E 's/^ *| *$//g'), $(echo $CUSTOMER_NAME | sed -E 's/^ *| *$//g')."
 
-SET default_tablespace = '';
+    else
+        CUSTOMER_NAME=$($PSQL "SELECT name FROM customers WHERE phone='$CUSTOMER_PHONE'")
+        echo -e "\nWhat time would you like your $(echo $SERVICE | sed -E 's/^ *| *$//g'), $(echo $CUSTOMER_NAME | sed -E 's/^ *| *$//g')?"
+        read SERVICE_TIME
+        CUSTOMER_ID=$($PSQL "SELECT customer_id FROM customers WHERE phone='$CUSTOMER_PHONE'")
+        INSERT_APPOINTMENT_CUT=$($PSQL "INSERT INTO appointments (customer_id, service_id, time) VALUES ($CUSTOMER_ID, $SERVICE_ID, '$SERVICE_TIME')")
+        echo -e "\nI have put you down for a $(echo $SERVICE | sed -E 's/^ *| *$//g') at $(echo $SERVICE_TIME | sed -E 's/^ *| *$//g'), $(echo $CUSTOMER_NAME | sed -E 's/^ *| *$//g')."
 
-SET default_table_access_method = heap;
+    fi
 
-CREATE TABLE public.appointments (
-    appointment_id integer NOT NULL,
-    customer_id integer NOT NULL,
-    service_id integer NOT NULL,
-    "time" character varying(30)
-);
+}
 
-
-ALTER TABLE public.appointments OWNER TO freecodecamp;
-
-CREATE SEQUENCE public.appointments_appointment_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.appointments_appointment_id_seq OWNER TO freecodecamp;
-
-ALTER SEQUENCE public.appointments_appointment_id_seq OWNED BY public.appointments.appointment_id;
-
-CREATE TABLE public.customers (
-    customer_id integer NOT NULL,
-    phone character varying(15),
-    name character varying(50)
-);
-
-
-ALTER TABLE public.customers OWNER TO freecodecamp;
-
-CREATE SEQUENCE public.customers_customer_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.customers_customer_id_seq OWNER TO freecodecamp;
-
-ALTER SEQUENCE public.customers_customer_id_seq OWNED BY public.customers.customer_id;
-
-CREATE TABLE public.services (
-    service_id integer NOT NULL,
-    name character varying(50)
-);
-
-
-ALTER TABLE public.services OWNER TO freecodecamp;
-
-CREATE SEQUENCE public.services_service_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.services_service_id_seq OWNER TO freecodecamp;
-
-ALTER SEQUENCE public.services_service_id_seq OWNED BY public.services.service_id;
-
-ALTER TABLE ONLY public.appointments ALTER COLUMN appointment_id SET DEFAULT nextval('public.appointments_appointment_id_seq'::regclass);
-
-ALTER TABLE ONLY public.customers ALTER COLUMN customer_id SET DEFAULT nextval('public.customers_customer_id_seq'::regclass);
-
-ALTER TABLE ONLY public.services ALTER COLUMN service_id SET DEFAULT nextval('public.services_service_id_seq'::regclass);
-
-INSERT INTO public.services VALUES (1, 'cut');
-INSERT INTO public.services VALUES (2, 'color');
-INSERT INTO public.services VALUES (3, 'perm');
-INSERT INTO public.services VALUES (4, 'style');
-INSERT INTO public.services VALUES (5, 'trim');
-
-SELECT pg_catalog.setval('public.appointments_appointment_id_seq', 8, true);
-
-SELECT pg_catalog.setval('public.customers_customer_id_seq', 19, true);
-
-SELECT pg_catalog.setval('public.services_service_id_seq', 5, true);
-
-ALTER TABLE ONLY public.appointments
-    ADD CONSTRAINT appointments_pkey PRIMARY KEY (appointment_id);
-
-ALTER TABLE ONLY public.customers
-    ADD CONSTRAINT customers_phone_key UNIQUE (phone);
-
-ALTER TABLE ONLY public.customers
-    ADD CONSTRAINT customers_pkey PRIMARY KEY (customer_id);
-
-ALTER TABLE ONLY public.services
-    ADD CONSTRAINT services_pkey PRIMARY KEY (service_id);
-
-ALTER TABLE ONLY public.appointments
-    ADD CONSTRAINT appointments_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id);
-
-ALTER TABLE ONLY public.appointments
-    ADD CONSTRAINT appointments_service_id_fkey FOREIGN KEY (service_id) REFERENCES public.services(service_id);
-
---
--- PostgreSQL database dump complete
---
+MAIN_MENU
