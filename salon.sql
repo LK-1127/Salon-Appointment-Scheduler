@@ -20,6 +20,19 @@ SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
+
+DROP DATABASE salon;
+--
+-- Name: salon; Type: DATABASE; Schema: -; Owner: freecodecamp
+--
+
+CREATE DATABASE salon WITH TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'C.UTF-8' LC_CTYPE = 'C.UTF-8';
+
+
+ALTER DATABASE salon OWNER TO freecodecamp;
+
+\connect salon
+
 --
 -- Name: appointments; Type: TABLE; Schema: public; Owner: freecodecamp
 --
